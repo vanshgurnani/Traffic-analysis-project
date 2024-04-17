@@ -36,21 +36,14 @@ shape_bottom_right_x = lane_center_x + shape_bottom_width // 2
 shape_top_y = lane_center_y - shape_height
 shape_bottom_y = lane_center_y
 
-# Function to handle mouse events (optional for interactive adjustments)
-def mouse_event(event, x, y, flags, param):
-    if event == cv2.EVENT_MOUSEMOVE:
-        print(f"Mouse Coordinates: ({x}, {y})")
-
-# Set the mouse event callback function (optional)
-cv2.namedWindow('Processed Frame')
-cv2.setMouseCallback('Processed Frame', mouse_event)
-
 # Traffic light control variables
 green_time = 20  # Green light duration in seconds
 red_time = 20  # Red light duration in seconds
 last_light_change = time.time()
 green_light = False
 previous_density_high = False
+correct_predictions = 0
+total_predictions = 0
 
 # Font settings for time display
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -75,21 +68,6 @@ while cap.isOpened():
                               (shape_bottom_right_x, shape_bottom_y),
                               (shape_bottom_left_x, shape_bottom_y)]
     cv2.polylines(frame, [np.array(area_coordinates_pixel, dtype=np.int32)], isClosed=True, color=(0, 0, 255), thickness=2)
-
-    # Draw the grid
-    grid_color = (255, 0, 0)  # Blue color in OpenCV format (B, G, R)
-
-    # Draw horizontal lines and display grid coordinates
-    for i in range(1, 10):
-        y = int((i / 10) * height)
-        cv2.line(frame, (0, y), (width, y), grid_color, 1)
-        cv2.putText(frame, f"{i}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-
-    # Draw vertical lines and display grid coordinates
-    for i in range(1, 10):
-        x = int((i / 10) * width)
-        cv2.line(frame, (x, 0), (x, height), grid_color, 1)
-        cv2.putText(frame, f"{i}", (x, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
     # Preprocess frame for object detection
     blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
@@ -167,11 +145,13 @@ while cap.isOpened():
                 if not previous_density_high:
                     last_light_change = time.time()
                     green_light = True
-                   # time_text = f"Traffic Light Changed to Green at: {time.strftime('%H:%M:%S', time.localtime(last_light_change))}"
-                    #cv2.putText(frame, time_text, (10, 60), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
                     previous_density_high = True
+                    correct_predictions += 1
+                else:
+                    total_predictions += 1
             else:
                 previous_density_high = False
+                total_predictions += 1
 
             # Check if it's time to change the light
             if green_light and time.time() - last_light_change > green_time:
@@ -184,11 +164,12 @@ while cap.isOpened():
             light_text = "Green Light" if green_light else "Red Light"
 
             # Draw the area and density text on the frame
-            area_text = f"Red Box Area: {red_box_area:.2f} sq. unit"
             density_text = f"Density: {density_percentage:.2f}%"
             light_text = f"Traffic Light: {light_text}"
             time_text = f"Traffic Light Changed to Green at: {time.strftime('%H:%M:%S', time.localtime(last_light_change))}"
-            #cv2.putText(frame, area_text, (10, 60), font, font_scale, text_color, font_thickness, cv2.LINE_AA)
+            print("Density:", density_percentage)
+            print("Accuracy:", correct_predictions / total_predictions if total_predictions > 0 else 0)
+
             cv2.putText(frame, density_text, (10, 90), font, font_scale, text_color, font_thickness, cv2.LINE_AA)
             cv2.putText(frame, light_text, (10, 120), font, font_scale, light_color, font_thickness, cv2.LINE_AA)
             cv2.putText(frame, time_text, (10, 60), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
