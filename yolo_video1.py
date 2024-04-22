@@ -6,13 +6,15 @@ import time
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
 classes = []
 
+camera_url = 'http://192.168.23.223:8080/video'
+
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 
 layer_names = net.getUnconnectedOutLayersNames()
 
 # Open video capture
-cap = cv2.VideoCapture('video/test401.mp4')  # Replace with your video path
+cap = cv2.VideoCapture(camera_url)  # Replace with your video path
 
 # Define desired output width and height
 output_width = 854

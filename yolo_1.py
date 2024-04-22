@@ -12,7 +12,7 @@ with open("coco.names", "r") as f:
 layer_names = net.getUnconnectedOutLayersNames()
 
 # Open video capture
-cap = cv2.VideoCapture('video/test201.mp4')  # Replace with your video path
+cap = cv2.VideoCapture('video/test401.mp4')  # Replace with your video path
 
 # Define desired output width and height
 output_width = 854

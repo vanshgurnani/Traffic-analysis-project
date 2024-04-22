@@ -1,6 +1,12 @@
 import cv2
 import numpy as np
 
+camera_url = 'http://192.168.23.223:8080/video'
+
+# Set output width and height
+output_width = 640
+output_height = 480
+
 # Function to calculate trapezoidal ROI coordinates
 def calculate_trapezoidal_roi(image_width, image_height):
     # Define the points of the trapezoidal ROI based on the lane or camera aspect ratio
@@ -14,7 +20,7 @@ def calculate_trapezoidal_roi(image_width, image_height):
 # Main function to capture frames from video file and process them
 def main():
     # Open video capture from file
-    cap = cv2.VideoCapture('video/night_traffic.mp4')  # Replace 'video/test201.mp4' with your video file path
+    cap = cv2.VideoCapture(camera_url)  # Replace 'video/test201.mp4' with your video file path
 
     # Check if the video file opened successfully
     if not cap.isOpened():
@@ -27,6 +33,9 @@ def main():
         if not ret:
             print("End of video.")
             break
+
+        # Resize the frame to the specified output width and height
+        frame = cv2.resize(frame, (output_width, output_height))
 
         # Get the dimensions of the frame
         height, width, _ = frame.shape
