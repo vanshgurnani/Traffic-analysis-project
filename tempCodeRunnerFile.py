@@ -1,21 +1,6 @@
 import cv2
 import numpy as np
 import time
-import tkinter as tk
-
-def change_light_color(color):
-    if color == "green":
-        light_label.config(text="Traffic Light: Green", fg="green")
-    elif color == "red":
-        light_label.config(text="Traffic Light: Red", fg="red")
-
-# Create a Tkinter window
-root = tk.Tk()
-root.title("Traffic Light")
-
-# Create a label to display the traffic light color
-light_label = tk.Label(root, text="Traffic Light: Red", fg="red", font=("Helvetica", 16))
-light_label.pack(pady=10)
 
 # Load YOLO
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
@@ -35,7 +20,7 @@ cap = cv2.VideoCapture('video/test401.mp4')  # Replace with your video path
 output_width = 854
 output_height = 480
 
-density_threshold = 40
+density_threshold = 60
 
 # Define lane dimensions
 lane_width = 1000  # Adjust as needed
@@ -77,8 +62,6 @@ frame_counter = 0
 # Set the mouse event callback function (optional)
 cv2.namedWindow('Processed Frame')
 # cv2.setMouseCallback('Processed Frame', mouse_event)
-
-green_light_time = None
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -204,11 +187,8 @@ while cap.isOpened():
                     print(f"Density at that time: {density_percentage:.2f}%")
                 elif elapsed_time > 15 and green_light_time is None:
                     # If elapsed time is more than 15 seconds and green light time is not set
-                    green_light_time = elapsed_time + 10  # Set green light time after additional 10 seconds
+                    green_light_time = time.time() + 10  # Set green light time after additional 10 seconds
                     print("Waiting for additional 10 seconds before setting signal to green...")
-                    print(green_light_time)
-                    light_color = (0, 255, 0)  # Green
-                    light_text = "Green Light"
                 elif green_light_time is not None and time.time() >= green_light_time:
                     # If green light time is set and current time is past green light time
                     print("Setting signal to green...")
@@ -221,20 +201,20 @@ while cap.isOpened():
             if density_percentage >= density_threshold:
                 light_color = (0, 255, 0)  # Green
                 light_text = "Green Light"
-                change_light_color("green")
             else:
                 light_color = (0, 0, 255)  # Red
                 light_text = "Red Light"
-                change_light_color("red")
 
             # Draw the area and density text on the frame
             font = cv2.FONT_HERSHEY_SIMPLEX
             area_text = f"Red Box Area: {red_box_area:.2f} sq. unit"
             density_text = f"Density: {density_percentage:.2f}%"
             light_text = f"Traffic Light: {light_text}"
+            time_text= f"Time: {elapsed_time}"
             cv2.putText(frame, area_text, (10, 60), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
             cv2.putText(frame, density_text, (10, 90), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
             cv2.putText(frame, light_text, (10, 120), font, 0.7, light_color, 2, cv2.LINE_AA)
+            cv2.putText(frame, time_text, (10, 160), font, 0.7, light_color, 2, cv2.LINE_AA)
 
             # Draw count text on the frame
             count_text = f"Total Vehicle Count: {num_objects_after_nms}"
@@ -250,5 +230,3 @@ while cap.isOpened():
 # Release video capture and close
 cap.release()
 cv2.destroyAllWindows()
-
-root.mainloop()
