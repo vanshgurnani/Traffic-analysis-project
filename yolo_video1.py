@@ -185,6 +185,9 @@ def video_process(path):
                 # Check if density threshold is still reached
                 if density_threshold_reached:
                     elapsed_time = time.time() - start_time
+                    elapsed_time_text = f"Elapsed Time: {elapsed_time:.2f} seconds"
+                    cv2.putText(frame, elapsed_time_text, (10, 150), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+                    
                     if elapsed_time <= 15:
                         print(f"Time to reach density threshold: {elapsed_time:.2f} seconds")
                         print(f"Density at that time: {density_percentage:.2f}%")
@@ -266,17 +269,29 @@ def simulate_traffic_light():
 
 
 def main():
-    # Your existing code here
-    video_path = 'video/test401.mp4';
+    root = tk.Tk()
+    root.title("Traffic Monitoring System")
 
-    video_thread = Thread(target=video_process, args=(video_path,))
-    video_thread.start()
+    # Create input field for video path
+    label = tk.Label(root, text="Enter Video Path:")
+    label.pack()
 
-    # Start GUI in a separate thread
-    gui_thread = Thread(target=simulate_traffic_light)
-    gui_thread.start()
+    video_path_entry = tk.Entry(root)
+    video_path_entry.pack()
 
-    # Your existing code here
+    def start_processing():
+        video_path = video_path_entry.get()
+        video_thread = Thread(target=video_process, args=(video_path,))
+        video_thread.start()
+
+        # Start GUI in a separate thread
+        gui_thread = Thread(target=simulate_traffic_light)
+        gui_thread.start()
+
+    start_button = tk.Button(root, text="Start Processing", command=start_processing)
+    start_button.pack()
+
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
