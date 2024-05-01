@@ -4,18 +4,15 @@ import time
 import tkinter as tk
 from threading import *
 from queue import Queue
+from PIL import Image, ImageTk
 
 # Define a global variable for the queue
 queue = Queue()
 
-
-
-def video_process(path):
+def video_process(path, processed_frame_label):
     # Load YOLO
     net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
     classes = []
-
-    # camera_url = 'http://192.168.0.190:8080/video'
 
     with open("coco.names", "r") as f:
         classes = [line.strip() for line in f.readlines()]
@@ -23,7 +20,7 @@ def video_process(path):
     layer_names = net.getUnconnectedOutLayersNames()
 
     # Open video capture
-    cap = cv2.VideoCapture(path)  # Replace with your video path
+    cap = cv2.VideoCapture(path)
 
     # Define desired output width and height
     output_width = 854
@@ -32,7 +29,7 @@ def video_process(path):
     density_threshold = 40
 
     # Define lane dimensions
-    lane_width = 1000  # Adjust as needed
+    lane_width = 1000
     lane_center_x = output_width // 2
     lane_center_y = output_height
 
@@ -44,9 +41,9 @@ def video_process(path):
     end_time = None
 
     # Calculate shape dimensions
-    shape_top_width = lane_width * 0.57  # 80% of lane width
-    shape_bottom_width = lane_width * 0.5  # 50% of lane width
-    shape_height = 400  # Adjust as needed
+    shape_top_width = lane_width * 0.57
+    shape_bottom_width = lane_width * 0.5
+    shape_height = 400
 
     # Calculate shape coordinates
     shape_top_left_x = lane_center_x - shape_top_width // 2
@@ -57,12 +54,10 @@ def video_process(path):
     shape_bottom_y = lane_center_y
 
     # Set the desired skip_frames value
-    skip_frames = 15  # Adjust as needed
+    skip_frames = 15
 
     # Counter to keep track of frames
     frame_counter = 0
-
-    cv2.namedWindow('Processed Frame')
 
     green_light_time = None
 
@@ -91,15 +86,13 @@ def video_process(path):
         cv2.polylines(frame, [np.array(area_coordinates_pixel, dtype=np.int32)], isClosed=True, color=(0, 0, 255), thickness=2)
 
         # Draw the grid
-        grid_color = (255, 0, 0)  # Blue color in OpenCV format (B, G, R)
+        grid_color = (255, 0, 0)
 
-        # Draw horizontal lines and display grid coordinates
         for i in range(1, 10):
             y = int((i / 10) * height)
             cv2.line(frame, (0, y), (width, y), grid_color, 1)
             cv2.putText(frame, f"{i}", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
-        # Draw vertical lines and display grid coordinates
         for i in range(1, 10):
             x = int((i / 10) * width)
             cv2.line(frame, (x, 0), (x, height), grid_color, 1)
@@ -129,7 +122,7 @@ def video_process(path):
                 confidence = scores[class_id]
                 if confidence > 0.5:
                     if classes[class_id] in ['person', 'traffic light','parking meter','stop sign']:
-                        continue  # Skip processing persons and traffic signals
+                        continue
                     # Object detected
                     center_x = int(detection[0] * width)
                     center_y = int(detection[1] * height)
@@ -159,11 +152,9 @@ def video_process(path):
 
                 num_objects_after_nms = len(indices)
 
-                # Drawing green boxes around detected objects on the frame
                 for i in indices:
                     x, y, w, h = boxes[i]
-                    # Draw a green rectangle
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Green color: (0, 255, 0), Thickness: 2
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
                 # Calculate the area of the red box using the formula for a convex quadrilateral
                 x1, y1 = area_coordinates_pixel[0]
@@ -186,7 +177,7 @@ def video_process(path):
                 if density_threshold_reached:
                     elapsed_time = time.time() - start_time
                     elapsed_time_text = f"Elapsed Time: {elapsed_time:.2f} seconds"
-                    cv2.putText(frame, elapsed_time_text, (10, 150), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+                    cv2.putText(frame, elapsed_time_text, (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
                     
                     if elapsed_time <= 15:
                         print(f"Time to reach density threshold: {elapsed_time:.2f} seconds")
@@ -229,44 +220,48 @@ def video_process(path):
                 count_text = f"Total Vehicle Count: {num_objects_after_nms}"
                 cv2.putText(frame, count_text, (10, 30), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
-        # Display the processed frame without saving
-        cv2.imshow('Processed Frame', frame)
-
-        # Check for the 'q' key to exit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Convert the frame to RGB format
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Convert the frame to PIL Image
+        pil_img = Image.fromarray(frame_rgb)
+        # Convert PIL Image to Tkinter PhotoImage
+        tk_img = ImageTk.PhotoImage(image=pil_img)
+        # Update the Label with the new image
+        processed_frame_label.config(image=tk_img)
+        processed_frame_label.image = tk_img  # Keep a reference to prevent garbage collection
 
     # Release video capture and close
     cap.release()
-    cv2.destroyAllWindows()
 
- # Start GUI in a separate thread
+def simulate_traffic_light(root):
+    # Create a frame for the traffic light simulation
+    traffic_frame = tk.Frame(root, width=100, height=300)
+    traffic_frame.pack(side=tk.LEFT)
 
-
-def simulate_traffic_light():
-    root = tk.Tk()
-    root.title("Traffic Light Simulation")
-
-    canvas = tk.Canvas(root, width=100, height=300, bg="white")
+    canvas = tk.Canvas(traffic_frame, width=100, height=300, bg="white")
     canvas.pack()
 
-    while True:
-        # Check if there's a message in the queue
-        if not queue.empty():
-            color = queue.get()
-            canvas.delete("all")  # Clear previous light
-            if color == "red":
-                canvas.create_oval(25, 25, 75, 75, fill="red")  # Red light
-                canvas.create_oval(25, 100, 75, 150, outline="gray")  # Yellow light (not lit)
-                canvas.create_oval(25, 175, 75, 225, outline="gray")  # Green light (not lit)
-            elif color == "green":
-                canvas.create_oval(25, 25, 75, 75, outline="gray")  # Red light (not lit)
-                canvas.create_oval(25, 100, 75, 150, outline="gray")  # Yellow light (not lit)
-                canvas.create_oval(25, 175, 75, 225, fill="green")  # Green light
-            else:
-                print("Invalid color provided.")
-        root.update()
+    def update_traffic_light():
+        while True:
+            # Check if there's a message in the queue
+            if not queue.empty():
+                color = queue.get()
+                canvas.delete("all")  # Clear previous light
+                if color == "red":
+                    canvas.create_oval(25, 25, 75, 75, fill="red")  # Red light
+                    canvas.create_oval(25, 100, 75, 150, outline="gray")  # Yellow light (not lit)
+                    canvas.create_oval(25, 175, 75, 225, outline="gray")  # Green light (not lit)
+                elif color == "green":
+                    canvas.create_oval(25, 25, 75, 75, outline="gray")  # Red light (not lit)
+                    canvas.create_oval(25, 100, 75, 150, outline="gray")  # Yellow light (not lit)
+                    canvas.create_oval(25, 175, 75, 225, fill="green")  # Green light
+                else:
+                    print("Invalid color provided.")
+            root.update()
 
+    # Start updating traffic light in a separate thread
+    update_thread = Thread(target=update_traffic_light)
+    update_thread.start()
 
 def main():
     root = tk.Tk()
@@ -279,19 +274,26 @@ def main():
     video_path_entry = tk.Entry(root)
     video_path_entry.pack()
 
+    # Create a frame for the processed frame label and traffic light simulation
+    frame = tk.Frame(root)
+    frame.pack()
+
+    processed_frame_label = tk.Label(frame)
+    processed_frame_label.pack(side=tk.RIGHT)
+
+    # Call function to integrate traffic light simulation
+    simulate_traffic_light(frame)
+
     def start_processing():
         video_path = video_path_entry.get()
-        video_thread = Thread(target=video_process, args=(video_path,))
+        video_thread = Thread(target=video_process, args=(video_path, processed_frame_label))
         video_thread.start()
-
-        # Start GUI in a separate thread
-        gui_thread = Thread(target=simulate_traffic_light)
-        gui_thread.start()
 
     start_button = tk.Button(root, text="Start Processing", command=start_processing)
     start_button.pack()
 
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
