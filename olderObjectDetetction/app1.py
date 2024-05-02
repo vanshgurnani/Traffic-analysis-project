@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load video file
-cap = cv2.VideoCapture('video/test201.mp4')
+cap = cv2.VideoCapture('video/test401.mp4')
 
 # Create background subtractor
 bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, detectShadows=False)

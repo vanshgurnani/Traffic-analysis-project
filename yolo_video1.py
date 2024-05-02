@@ -21,6 +21,10 @@ def video_process(path, processed_frame_label):
 
     # Open video capture
     cap = cv2.VideoCapture(path)
+    
+    # Get the frame rate of the video
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+
 
     # Define desired output width and height
     output_width = 854
@@ -60,6 +64,8 @@ def video_process(path, processed_frame_label):
     frame_counter = 0
 
     green_light_time = None
+    
+    prev_centroids = {}
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -152,9 +158,33 @@ def video_process(path, processed_frame_label):
 
                 num_objects_after_nms = len(indices)
 
+                # Define the scale of the scene (pixels per kilometer)
+                pixels_per_meter = 10  # Adjust this value based on your scene
+
+                # Inside the loop where you draw green boxes
                 for i in indices:
                     x, y, w, h = boxes[i]
+                    # Calculate centroid of the bounding box
+                    centroid_x = x + w // 2
+                    centroid_y = y + h // 2
+                    # Draw green box
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    # Calculate speed (distance traveled) for this object
+                    if prev_centroids.get(i) is not None:
+                        prev_x, prev_y = prev_centroids[i]
+                        distance_px = np.sqrt((centroid_x - prev_x)**2 + (centroid_y - prev_y)**2)
+                        # Convert distance from pixels to kilometers
+                        distance_km = (distance_px / pixels_per_meter) * 1000
+                        # Convert time from frames to hours
+                        time_hours = (skip_frames / video_fps) * 3600  # Assuming video_fps is the frame rate of your video
+                        # Calculate speed in kilometers per hour
+                        speed_kph = distance_km / time_hours
+                        # Display speed over the green box
+                        cv2.putText(frame, f"Speed: {speed_kph:.2f} km/h", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    # Update previous centroids
+                    prev_centroids[i] = (centroid_x, centroid_y)
+
+
 
                 # Calculate the area of the red box using the formula for a convex quadrilateral
                 x1, y1 = area_coordinates_pixel[0]
